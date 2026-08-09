@@ -26,3 +26,15 @@ Before starting the containers, run:
 
 ```bash
 xhost +local:root
+```
+Otherwise the screen of Gazebo won't show up
+
+### 2. Build and run the project
+
+Start the containers:
+
+```bash
+docker compose build && docker compose up
+```
+
+You should see the screen of Gazebo showing the drones. If drones didn't spawn immediately, just wait about 30 seconds, because the graphical models need to be downloaded from internet. So even if in the terminal you read "drones are spawned" but you don't actually see them, don't worry, you just need to wait.

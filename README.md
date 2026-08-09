@@ -29,6 +29,8 @@ xhost +local:root
 ```
 Otherwise the screen of Gazebo won't show up
 
+<br>
+
 ### 2. Build and run the project
 
 Start the containers:

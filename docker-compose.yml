@@ -1,0 +1,136 @@
+networks:
+  swarm_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+
+  # Fast-DDS Discovery Server (unicast) — replaces default
+  # multicast discovery for ROS 2.
+  discovery-server:
+    image: ros:jazzy-ros-base
+    container_name: discovery-server
+    hostname: discovery-server
+    command: >
+      bash -c "source /opt/ros/jazzy/setup.bash && fastdds discovery -i 0 -l 0.0.0.0 -p 11811"
+    networks:
+      swarm_net:
+        ipv4_address: 172.28.0.10
+    ports:
+      - "11811:11811/udp"
+      - "11811:11811/tcp"
+    restart: unless-stopped
+
+  # Gazebo Container: empty world + spawn point for drones
+  gazebo:
+    build:
+      context: .
+      dockerfile: Dockerfile.gazebo
+    container_name: gazebo
+    hostname: gazebo
+    depends_on:
+      - discovery-server
+    environment:
+      DISCOVERY_SERVER_IP: "172.28.0.10"
+      DISCOVERY_SERVER_PORT: "11811"
+      GZ_OWN_IP: "172.28.0.20"
+      DISPLAY: "${DISPLAY:-:0}"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    devices:
+      - /dev/dri:/dev/dri
+    networks:
+      swarm_net:
+        ipv4_address: 172.28.0.20
+    restart: unless-stopped
+
+  # Coordinator: Rust swarm coordinator
+  coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile.coordinator
+    container_name: coordinator
+    hostname: coordinator
+    depends_on:
+      - discovery-server
+      - gazebo
+    environment:
+      DISCOVERY_SERVER_IP: "172.28.0.10"
+      DISCOVERY_SERVER_PORT: "11811"
+      GZ_OWN_IP: "172.28.0.30"
+      WORLD_NAME: "empty"
+    networks:
+      swarm_net:
+        ipv4_address: 172.28.0.30
+    restart: unless-stopped
+
+  # Drone 1
+  drone1:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone1
+    hostname: drone1
+    depends_on:
+      - coordinator
+    environment:
+      DISCOVERY_SERVER_IP: "172.28.0.10"
+      DISCOVERY_SERVER_PORT: "11811"
+      GZ_OWN_IP: "172.28.0.21"
+      DRONE_NAME: "drone1"
+      SPAWN_X: "0"
+      SPAWN_Y: "0"
+      SPAWN_Z: "0.3"
+      WORLD_NAME: "empty"
+    networks:
+      swarm_net:
+        ipv4_address: 172.28.0.21
+    restart: unless-stopped
+
+  # Drone 2
+  drone2:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone2
+    hostname: drone2
+    depends_on:
+      - coordinator
+    environment:
+      DISCOVERY_SERVER_IP: "172.28.0.10"
+      DISCOVERY_SERVER_PORT: "11811"
+      GZ_OWN_IP: "172.28.0.22"
+      DRONE_NAME: "drone2"
+      SPAWN_X: "1.5"
+      SPAWN_Y: "0"
+      SPAWN_Z: "0.3"
+      WORLD_NAME: "empty"
+    networks:
+      swarm_net:
+        ipv4_address: 172.28.0.22
+    restart: unless-stopped
+
+  # Drone 3
+  drone3:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone3
+    hostname: drone3
+    depends_on:
+      - coordinator
+    environment:
+      DISCOVERY_SERVER_IP: "172.28.0.10"
+      DISCOVERY_SERVER_PORT: "11811"
+      GZ_OWN_IP: "172.28.0.23"
+      DRONE_NAME: "drone3"
+      SPAWN_X: "3.0"
+      SPAWN_Y: "0"
+      SPAWN_Z: "0.3"
+      WORLD_NAME: "empty"
+    networks:
+      swarm_net:
+        ipv4_address: 172.28.0.23
+    restart: unless-stopped
